@@ -36,9 +36,25 @@ def extract_tables_from_pdf(pdf_file):
 def call_llama_api(prompt):
     """Call Llama 3 API for financial insights and analysis."""
     headers = {"Authorization": f"Bearer {LLAMA_API_KEY}", "Content-Type": "application/json"}
-    payload = {"model": "llama-3", "messages": [{"role": "user", "content": prompt}], "max_tokens": 500}
+    payload = {
+        "model": "llama-3",
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 500
+    }
+    
     response = requests.post(LLAMA_API_URL, headers=headers, json=payload)
-    return response.json()["choices"][0]["message"]["content"]
+    
+    # Error handling
+    try:
+        response_json = response.json()
+        if "choices" in response_json:
+            return response_json["choices"][0]["message"]["content"]
+        else:
+            st.error(f"API Error: {response_json}")  # Display error in Streamlit
+            return "Error fetching insights."
+    except Exception as e:
+        st.error(f"Failed to parse API response: {e}")
+        return "Error fetching insights."
 
 def generate_financial_insights(text):
     """Generate 5 key financial insights."""
