@@ -1,10 +1,7 @@
 streamlit
-pdfplumber
 pymupdf
-matplotlib
-plotly
 pandas
-requests
-python-dotenv
+matplotlib
+faker
 fpdf
 google-generativeai
