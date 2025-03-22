@@ -1,0 +1,9 @@
+streamlit
+pdfplumber
+pymupdf
+matplotlib
+plotly
+pandas
+requests
+python-dotenv
+fpdf
