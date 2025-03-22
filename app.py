@@ -11,7 +11,7 @@ from fpdf import FPDF
 
 # Load API keys from .env file
 load_dotenv()
-LLAMA_API_KEY = os.getenv("87379a27-6004-47a1-837c-d9460485bf68")
+LLAMA_API_KEY = os.getenv("LLAMA-API-KEY")
 LLAMA_API_URL = "https://api.llama.com/v1/chat/completions"
 
 def extract_text_from_pdf(pdf_file):
