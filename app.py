@@ -9,7 +9,7 @@ from fpdf import FPDF
 import google.generativeai as genai
 
 # Configure Gemini API Key (Free API from Google AI Studio)
-GEMINI_API_KEY = "your_actual_gemini_api_key_here"
+GEMINI_API_KEY = "AIzaSyDtQ049lTGHZZoBkBV2wJIJmvTYgQYN0Og"
 genai.configure(api_key=GEMINI_API_KEY)
 
 def extract_text_from_pdf(pdf_path):
