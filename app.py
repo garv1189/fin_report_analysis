@@ -9,7 +9,7 @@ from fpdf import FPDF
 import google.generativeai as genai
 
 # Configure Gemini API Key (Free API from Google AI Studio)
-GEMINI_API_KEY = "AIzaSyCCkjNjyD8AzU119dSbCSlu4aEoRr6Z05o"
+GEMINI_API_KEY = "your_actual_gemini_api_key_here"
 genai.configure(api_key=GEMINI_API_KEY)
 
 def extract_text_from_pdf(pdf_path):
@@ -86,8 +86,8 @@ plt.xticks(rotation=45, ha='right')
 plt.ylabel("Ratio Value")
 st.pyplot(fig)
 
-# Generate Insights using Free Gemini API
-model = genai.GenerativeModel("gemini-pro")
+# Generate Insights using Gemini 2.0 Flash Exp API
+model = genai.GenerativeModel("gemini-2.0-flash-exp")
 response = model.generate_content(f"""Analyze the following financial ratios: {ratios}. 
 Provide three key insights and recommendations.""")
 insights = response.text
