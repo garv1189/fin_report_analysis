@@ -11,15 +11,17 @@ from fpdf import FPDF
 
 # Load API keys from .env file
 load_dotenv()
-LLAMA_API_KEY = os.getenv("LLAMA-API-KEY")
-LLAMA_API_URL = "https://api.llama.com/v1/chat/completions"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 
 def extract_text_from_pdf(pdf_file):
     """Extract text from the uploaded PDF file."""
     text = ""
     with pdfplumber.open(pdf_file) as pdf:
         for page in pdf.pages:
-            text += page.extract_text() + "\n"
+            extracted_text = page.extract_text()
+            if extracted_text:
+                text += extracted_text + "\n"
     return text
 
 def extract_tables_from_pdf(pdf_file):
@@ -29,28 +31,25 @@ def extract_tables_from_pdf(pdf_file):
         for page in pdf.pages:
             tables = page.extract_tables()
             for table in tables:
-                df = pd.DataFrame(table[1:], columns=table[0])
-                dfs.append(df)
+                if table and len(table) > 1:
+                    df = pd.DataFrame(table[1:], columns=table[0])
+                    dfs.append(df)
     return dfs
 
-def call_llama_api(prompt):
-    """Call Llama 3 API for financial insights and analysis."""
-    headers = {"Authorization": f"Bearer {LLAMA_API_KEY}", "Content-Type": "application/json"}
+def call_gemini_api(prompt):
+    """Call Gemini API for financial insights and analysis."""
+    headers = {"Content-Type": "application/json"}
     payload = {
-        "model": "llama-3",
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 500
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"maxOutputTokens": 500}
     }
-    
-    response = requests.post(LLAMA_API_URL, headers=headers, json=payload)
-    
-    # Error handling
+    response = requests.post(f"{GEMINI_API_URL}?key={GEMINI_API_KEY}", headers=headers, json=payload)
     try:
         response_json = response.json()
-        if "choices" in response_json:
-            return response_json["choices"][0]["message"]["content"]
+        if "candidates" in response_json:
+            return response_json["candidates"][0]["content"]["parts"][0]["text"]
         else:
-            st.error(f"API Error: {response_json}")  # Display error in Streamlit
+            st.error(f"API Error: {response_json}")
             return "Error fetching insights."
     except Exception as e:
         st.error(f"Failed to parse API response: {e}")
@@ -59,16 +58,17 @@ def call_llama_api(prompt):
 def generate_financial_insights(text):
     """Generate 5 key financial insights."""
     prompt = f"Extract and summarize 5 key financial insights from the following annual report:\n{text[:4000]}"
-    return call_llama_api(prompt)
+    return call_gemini_api(prompt)
 
 def calculate_financial_ratios(df):
     """Calculate key financial ratios from extracted tables."""
     ratios = {}
     try:
-        total_assets = df[df.columns[1]].astype(float).sum()
-        total_liabilities = df[df.columns[2]].astype(float).sum()
-        revenue = df[df.columns[3]].astype(float).sum()
-        profit = df[df.columns[4]].astype(float).sum()
+        numeric_df = df.apply(pd.to_numeric, errors='coerce')
+        total_assets = numeric_df.iloc[:, 1].sum()
+        total_liabilities = numeric_df.iloc[:, 2].sum()
+        revenue = numeric_df.iloc[:, 3].sum()
+        profit = numeric_df.iloc[:, 4].sum()
 
         ratios["Debt-to-Equity Ratio"] = round(total_liabilities / (total_assets - total_liabilities), 2)
         ratios["Profit Margin"] = round((profit / revenue) * 100, 2)
@@ -80,21 +80,25 @@ def calculate_financial_ratios(df):
 def generate_visualizations(df):
     """Create 5 financial visualizations."""
     st.subheader("📊 Financial Visualizations")
-    fig1 = px.line(df, x=df.columns[0], y=df.columns[3], title="Revenue Trend Over Time")
-    st.plotly_chart(fig1)
-    fig2 = px.bar(df, x=df.columns[0], y=df.columns[4], title="Profit Comparison")
-    st.plotly_chart(fig2)
-    fig3 = px.pie(df, names=df.columns[1], values=df.columns[2], title="Assets vs. Liabilities")
-    st.plotly_chart(fig3)
-    fig4 = px.scatter(df, x=df.columns[3], y=df.columns[4], title="Revenue vs. Profit")
-    st.plotly_chart(fig4)
-    fig5 = px.area(df, x=df.columns[0], y=df.columns[2], title="Liabilities Growth Over Time")
-    st.plotly_chart(fig5)
+    try:
+        numeric_df = df.apply(pd.to_numeric, errors='coerce')
+        fig1 = px.line(numeric_df, x=numeric_df.index, y=numeric_df.iloc[:, 3], title="Revenue Trend Over Time")
+        st.plotly_chart(fig1)
+        fig2 = px.bar(numeric_df, x=numeric_df.index, y=numeric_df.iloc[:, 4], title="Profit Comparison")
+        st.plotly_chart(fig2)
+        fig3 = px.pie(numeric_df, names=df.columns[1], values=numeric_df.iloc[:, 2], title="Assets vs. Liabilities")
+        st.plotly_chart(fig3)
+        fig4 = px.scatter(numeric_df, x=numeric_df.iloc[:, 3], y=numeric_df.iloc[:, 4], title="Revenue vs. Profit")
+        st.plotly_chart(fig4)
+        fig5 = px.area(numeric_df, x=numeric_df.index, y=numeric_df.iloc[:, 2], title="Liabilities Growth Over Time")
+        st.plotly_chart(fig5)
+    except Exception as e:
+        st.error(f"Error generating visualizations: {e}")
 
 def generate_analytics(text):
     """Generate 5 deep-dive analytics from the financial report."""
     prompt = f"Analyze this financial report and provide 5 detailed financial analytics insights:\n{text[:4000]}"
-    return call_llama_api(prompt)
+    return call_gemini_api(prompt)
 
 def generate_pdf_report(insights, ratios, analytics):
     """Generate a printable PDF report."""
@@ -127,7 +131,7 @@ def main():
         text = extract_text_from_pdf(uploaded_file)
         dfs = extract_tables_from_pdf(uploaded_file)
         
-        with st.spinner("Analyzing Report with Llama 3..."):
+        with st.spinner("Analyzing Report with Gemini..."):
             insights = generate_financial_insights(text)
             st.subheader("📢 Key Financial Insights")
             st.write(insights)
