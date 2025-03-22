@@ -5,10 +5,13 @@ import json
 import matplotlib.pyplot as plt
 from faker import Faker
 import random
-from openai import OpenAI
 from fpdf import FPDF
+from google.generativeai import configure, GenerativeModel
 
-# Function to extract text from PDF
+# Configure Gemini API Key
+GEMINI_API_KEY = "your_actual_gemini_api_key_here"
+configure(api_key=GEMINI_API_KEY)
+
 def extract_text_from_pdf(pdf_path):
     doc = fitz.open(pdf_path)
     text = ""
@@ -32,7 +35,6 @@ if uploaded_file:
     st.subheader("Extracted Data in JSON Format")
     st.json(json_data)
     
-    # Save JSON file
     with open("financial_data.json", "w") as json_file:
         json_file.write(json_data)
     
@@ -85,15 +87,12 @@ plt.ylabel("Ratio Value")
 st.pyplot(fig)
 
 # Generate Insights using Gemini API
-client = OpenAI(api_key="YOUR_GEMINI_API_KEY")
-response = client.Completion.create(
-    model="gemini-pro",
-    prompt=f"""Analyze the following financial ratios: {ratios}. 
-    Provide three key insights and recommendations.""",
-    max_tokens=300
-)
+model = GenerativeModel("gemini-pro")
+response = model.generate_content(f"""Analyze the following financial ratios: {ratios}. 
+Provide three key insights and recommendations.""")
+insights = response.text
+
 st.subheader("AI-Generated Insights")
-insights = response.choices[0].text
 st.write(insights)
 
 # Generate Final Report in PDF
@@ -111,7 +110,6 @@ for key, value in ratios.items():
 pdf.cell(200, 10, "\nAI-Generated Insights:", ln=True)
 pdf.multi_cell(0, 10, insights)
 
-# Save PDF
 pdf_output = "Financial_Report.pdf"
 pdf.output(pdf_output)
 st.download_button("Download Financial Report", data=open(pdf_output, "rb"), file_name="Financial_Report.pdf")
