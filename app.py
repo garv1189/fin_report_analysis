@@ -6,11 +6,11 @@ import matplotlib.pyplot as plt
 from faker import Faker
 import random
 from fpdf import FPDF
-from google.generativeai import configure, GenerativeModel
+import google.generativeai as genai
 
-# Configure Gemini API Key
+# Configure Gemini API Key (Free API from Google AI Studio)
 GEMINI_API_KEY = "AIzaSyCCkjNjyD8AzU119dSbCSlu4aEoRr6Z05o"
-configure(api_key=GEMINI_API_KEY)
+genai.configure(api_key=GEMINI_API_KEY)
 
 def extract_text_from_pdf(pdf_path):
     doc = fitz.open(pdf_path)
@@ -86,8 +86,8 @@ plt.xticks(rotation=45, ha='right')
 plt.ylabel("Ratio Value")
 st.pyplot(fig)
 
-# Generate Insights using Gemini API
-model = GenerativeModel("gemini-pro")
+# Generate Insights using Free Gemini API
+model = genai.GenerativeModel("gemini-pro")
 response = model.generate_content(f"""Analyze the following financial ratios: {ratios}. 
 Provide three key insights and recommendations.""")
 insights = response.text
